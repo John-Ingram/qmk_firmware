@@ -18,8 +18,10 @@ enum ferris_tap_dances {
   TD_Q_ESC,
   TD_DEL_WIN,
   TD_W_TAB,
-  TD_QMRK_BSLS
+  TD_QMRK_BSLS,
+  X_CTRL_CUT
 };
+
 
 #define KC_CTSC RCTL_T(KC_SCLN)
 #define KC_CTLA LCTL_T(KC_A)
@@ -30,11 +32,33 @@ enum ferris_tap_dances {
 #define KC_GUTA GUI_T(KC_TAB)
 #define KC_CLGV CTL_T(KC_GRV)
 
+// Define a type containing as many tapdance states as you need
+typedef enum {
+    TD_NONE,
+    TD_UNKNOWN,
+    TD_SINGLE_TAP,
+    TD_SINGLE_HOLD,
+    TD_DOUBLE_SINGLE_TAP
+} td_state_t;
+
+// Create a global instance of the tapdance state type
+static td_state_t td_state;
+
+// Declare your tapdance functions:
+
+// Function to determine the current tapdance state
+td_state_t cur_dance(qk_tap_dance_state_t *state);
+
+// `finished` and `reset` functions for each tapdance keycode
+void xcc_finished(qk_tap_dance_state_t *state, void *user_data);
+void xccp_reset(qk_tap_dance_state_t *state, void *user_data);
+
+
 const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
   [_LETTERS] = LAYOUT( /* QWERTY */
     TD(TD_Q_ESC), TD(TD_W_TAB), KC_E, KC_R, KC_T,                     KC_Y, KC_U, KC_I, KC_O, KC_P,
     LSFT_T(KC_A), KC_S, KC_D, KC_F, KC_G,             KC_H, KC_J, KC_K, KC_L, TO(_SYMBOLS),
-    KC_Z, LCTL_T(KC_X), LALT_T(KC_C),KC_V, KC_B,      KC_N, KC_M, LALT_T(KC_COMM), RSFT_T(KC_DOT), TO(_LETTERS),
+    KC_Z, TD(X_CTRL_CUT), LALT_T(KC_C),KC_V, KC_B,      KC_N, KC_M, LALT_T(KC_COMM), RSFT_T(KC_DOT), TO(_LETTERS),
                                 KC_SPC, KC_BSPC,      TD(TD_DEL_WIN), KC_ENTER
   ),
 
@@ -53,11 +77,62 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
   )
 };
 
+
+
+// Determine the tapdance state to return
+td_state_t cur_dance(qk_tap_dance_state_t *state) {
+    if (state->count == 1) {
+        if (state->interrupted || !state->pressed) return TD_SINGLE_TAP;
+        else return TD_SINGLE_HOLD;
+    }
+
+    if (state->count == 2) return TD_DOUBLE_SINGLE_TAP;
+    else return TD_UNKNOWN; // Any number higher than the maximum state value you return above
+}
+
+// Handle the possible states for each tapdance keycode you define:
+
+void xcc_finished(qk_tap_dance_state_t *state, void *user_data) {
+    td_state = cur_dance(state);
+    switch (td_state) {
+        case TD_SINGLE_TAP:
+            register_code16(KC_X);
+            break;
+        case TD_SINGLE_HOLD:
+            register_mods(MOD_BIT(KC_LCTL));
+            break;
+        case TD_DOUBLE_SINGLE_TAP: // Allow nesting of 2 parens `((` within tapping term
+            register_mods(MOD_BIT(KC_LCTL));
+            register_code16(KC_X);
+            break;
+        default:
+            break;
+    }
+}
+
+void xcc_reset(qk_tap_dance_state_t *state, void *user_data) {
+    switch (td_state) {
+        case TD_SINGLE_TAP:
+            unregister_code16(KC_X);
+            break;
+        case TD_SINGLE_HOLD:
+            unregister_mods(MOD_BIT(KC_LCTL));
+            break;
+        case TD_DOUBLE_SINGLE_TAP: // Allow nesting of 2 parens `((` within tapping term
+            unregister_mods(MOD_BIT(KC_LCTL));
+            unregister_code16(KC_X);
+            break;
+        default:
+            break;
+    }
+}
+
 // Tap Dance Definitions
 qk_tap_dance_action_t tap_dance_actions[] = {
 // Tap once for Q, twice for ESC
     [TD_Q_ESC] = ACTION_TAP_DANCE_DOUBLE(KC_Q, KC_ESC),
     [TD_DEL_WIN] = ACTION_TAP_DANCE_DOUBLE(KC_DEL, KC_LGUI),
     [TD_W_TAB] = ACTION_TAP_DANCE_DOUBLE(KC_W, KC_TAB),
-    [TD_QMRK_BSLS] = ACTION_TAP_DANCE_DOUBLE(KC_SLSH, KC_BSLS)
+    [TD_QMRK_BSLS] = ACTION_TAP_DANCE_DOUBLE(KC_SLSH, KC_BSLS),
+    [X_CTRL_CUT] = ACTION_TAP_DANCE_FN_ADVANCED(NULL, xcc_finished, xcc_reset)
 };
