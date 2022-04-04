@@ -17,7 +17,8 @@ enum ferris_layers {
 enum ferris_tap_dances {
   TD_Q_ESC,
   TD_DEL_WIN,
-  TD_W_TAB
+  TD_W_TAB,
+  TD_QMRK_BSLS
 };
 
 #define KC_CTSC RCTL_T(KC_SCLN)
@@ -39,8 +40,8 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
 
   [_SYMBOLS] = LAYOUT( /* [> LOWER <] */
     KC_1, KC_2, KC_3, KC_4, KC_5,                     KC_6, KC_7, KC_8, KC_9, KC_0,
-    KC_LSFT, KC_LBRC, KC_RBRC, KC_UP, KC_HOME,        KC_END, KC_MINS, KC_EQL, KC_QUOT, KC_SLSH,
-    KC_GRV, LCTL_T(KC_NO), KC_LEFT, KC_DOWN, KC_RGHT, TO(_CONTROL), KC_ESC, LALT_T(KC_COMM), RSFT_T(KC_DOT), TO(_LETTERS),
+    KC_LSFT, KC_LBRC, KC_RBRC, KC_UP, KC_HOME,        KC_END, KC_MINS, KC_EQL, KC_QUOT, TD(TD_QMRK_BSLS),
+    KC_GRV, LCTL_T(KC_NO), KC_LEFT, KC_DOWN, KC_RGHT, TO(_CONTROL), KC_SCLN, LALT_T(KC_COMM), RSFT_T(KC_DOT), TO(_LETTERS),
                                     KC_SPC, KC_BSPC,  TD(TD_DEL_WIN), KC_ENTER
   ),
 
@@ -54,8 +55,9 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
 
 // Tap Dance Definitions
 qk_tap_dance_action_t tap_dance_actions[] = {
-    // Tap once for Q, twice for ESC
+// Tap once for Q, twice for ESC
     [TD_Q_ESC] = ACTION_TAP_DANCE_DOUBLE(KC_Q, KC_ESC),
     [TD_DEL_WIN] = ACTION_TAP_DANCE_DOUBLE(KC_DEL, KC_LGUI),
-    [TD_W_TAB] = ACTION_TAP_DANCE_DOUBLE(KC_W, KC_TAB)
+    [TD_W_TAB] = ACTION_TAP_DANCE_DOUBLE(KC_W, KC_TAB),
+    [TD_QMRK_BSLS] = ACTION_TAP_DANCE_DOUBLE(KC_SLSH, KC_BSLS)
 };
