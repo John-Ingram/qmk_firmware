@@ -20,6 +20,7 @@ enum ferris_tap_dances {
   TD_W_TAB,
   TD_QMRK_BSLS,
   TD_V_PASTE,
+  S_SCRNSHT,
   X_CTRL_CUT,
   C_ALT_COPY
 };
@@ -59,8 +60,8 @@ void xccp_reset(qk_tap_dance_state_t *state, void *user_data);
 const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
   [_LETTERS] = LAYOUT( /* QWERTY */
     TD(TD_Q_ESC), TD(TD_W_TAB), KC_E, KC_R, KC_T,                     KC_Y, KC_U, KC_I, KC_O, KC_P,
-    LSFT_T(KC_A), KC_S, KC_D, KC_F, KC_G,                             KC_H, KC_J, KC_K, KC_L, TO(_SYMBOLS),
-    KC_Z, TD(X_CTRL_CUT), TD(C_ALT_COPY), TD(TD_V_PASTE), KC_B,       KC_N, KC_M, LALT_T(KC_COMM), RSFT_T(KC_DOT), TO(_LETTERS),
+    LSFT_T(KC_A), TD(S_SCRNSHT), KC_D, KC_F, KC_G,                 KC_H, KC_J, KC_K, KC_L, TO(_SYMBOLS),
+    KC_Z, TD(X_CTRL_CUT), LALT_T(KC_C), TD(TD_V_PASTE), KC_B,       KC_N, KC_M, LALT_T(KC_COMM), RSFT_T(KC_DOT), TO(_LETTERS),
                                 KC_SPC, KC_BSPC,                      TD(TD_DEL_WIN), KC_ENTER
   ),
 
@@ -193,6 +194,37 @@ void cac_reset(qk_tap_dance_state_t *state, void *user_data) {
     }
 }
 
+void sss_finished(qk_tap_dance_state_t *state, void *user_data) {
+    td_state = cur_dance(state);
+    switch (td_state) {
+        case TD_SINGLE_TAP:
+            register_code16(KC_S);
+            break;
+        case TD_DOUBLE_SINGLE_TAP: // Allow nesting of 2 parens `((` within tapping term
+            register_mods(MOD_BIT(KC_LGUI));
+            register_mods(MOD_BIT(KC_LSFT));
+            register_code16(KC_S);
+            break;
+        default:
+            break;
+    }
+}
+
+void sss_reset(qk_tap_dance_state_t *state, void *user_data) {
+    switch (td_state) {
+        case TD_SINGLE_TAP:
+            unregister_code16(KC_S);
+            break;
+        case TD_DOUBLE_SINGLE_TAP: // Allow nesting of 2 parens `((` within tapping term
+            unregister_mods(MOD_BIT(KC_LGUI));
+            unregister_mods(MOD_BIT(KC_LSFT));
+            unregister_code16(KC_S);
+            break;
+        default:
+            break;
+    }
+}
+
 // Tap Dance Definitions
 qk_tap_dance_action_t tap_dance_actions[] = {
 // Tap once for Q, twice for ESC
@@ -202,5 +234,7 @@ qk_tap_dance_action_t tap_dance_actions[] = {
     [TD_QMRK_BSLS] = ACTION_TAP_DANCE_DOUBLE(KC_SLSH, KC_BSLS),
     [TD_V_PASTE] = ACTION_TAP_DANCE_FN_ADVANCED(NULL, vp_finished, vp_reset),
     [X_CTRL_CUT] = ACTION_TAP_DANCE_FN_ADVANCED(NULL, xcc_finished, xcc_reset),
-    [C_ALT_COPY] = ACTION_TAP_DANCE_FN_ADVANCED(NULL, cac_finished, cac_reset)
+    [C_ALT_COPY] = ACTION_TAP_DANCE_FN_ADVANCED(NULL, cac_finished, cac_reset),
+    [S_SCRNSHT] = ACTION_TAP_DANCE_FN_ADVANCED(NULL, sss_finished, sss_reset)
+
 };
