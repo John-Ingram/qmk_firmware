@@ -8,6 +8,15 @@
 // Layer names don't all need to be of the same length, obviously, and you can also skip them
 // entirely and just use numbers.
 
+#include "features/autocorrection.h"
+
+bool process_record_user(uint16_t keycode, keyrecord_t* record) {
+  if (!process_autocorrection(keycode, record)) { return false; }
+  // Your macros...
+
+  return true;
+}
+
 enum ferris_layers {
   _LETTERS,
   _SYMBOLS,
@@ -21,6 +30,7 @@ enum ferris_tap_dances {
   TD_QMRK_BSLS,
   TD_V_PASTE,
   S_SCRNSHT,
+  L_LOCK,
   X_CTRL_CUT,
   C_ALT_COPY
 };
@@ -41,7 +51,9 @@ typedef enum {
     TD_UNKNOWN,
     TD_SINGLE_TAP,
     TD_SINGLE_HOLD,
-    TD_DOUBLE_SINGLE_TAP
+    TD_DOUBLE_SINGLE_TAP,
+    TD_TRIPPLE_SINGLE_TAP
+
 } td_state_t;
 
 // Create a global instance of the tapdance state type
@@ -60,7 +72,7 @@ void xccp_reset(qk_tap_dance_state_t *state, void *user_data);
 const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
   [_LETTERS] = LAYOUT( /* QWERTY */
     TD(TD_Q_ESC), TD(TD_W_TAB), KC_E, KC_R, KC_T,                     KC_Y, KC_U, KC_I, KC_O, KC_P,
-    LSFT_T(KC_A), TD(S_SCRNSHT), KC_D, KC_F, KC_G,                 KC_H, KC_J, KC_K, KC_L, TO(_SYMBOLS),
+    LSFT_T(KC_A), TD(S_SCRNSHT), KC_D, KC_F, KC_G,                 KC_H, KC_J, KC_K, TD(L_LOCK), TO(_SYMBOLS),
     KC_Z, TD(X_CTRL_CUT), LALT_T(KC_C), TD(TD_V_PASTE), KC_B,       KC_N, KC_M, LALT_T(KC_COMM), RSFT_T(KC_DOT), TO(_LETTERS),
                                 KC_SPC, KC_BSPC,                      TD(TD_DEL_WIN), KC_ENTER
   ),
@@ -90,6 +102,7 @@ td_state_t cur_dance(qk_tap_dance_state_t *state) {
     }
 
     if (state->count == 2) return TD_DOUBLE_SINGLE_TAP;
+    if (state->count == 3) return TD_TRIPPLE_SINGLE_TAP;
     else return TD_UNKNOWN; // Any number higher than the maximum state value you return above
 }
 
@@ -200,7 +213,13 @@ void sss_finished(qk_tap_dance_state_t *state, void *user_data) {
         case TD_SINGLE_TAP:
             register_code16(KC_S);
             break;
-        case TD_DOUBLE_SINGLE_TAP: // Allow nesting of 2 parens `((` within tapping term
+
+        case TD_DOUBLE_SINGLE_TAP:
+            register_code16(KC_S);
+            register_code16(KC_S);
+            break;
+
+        case TD_TRIPPLE_SINGLE_TAP: // Allow nesting of 2 parens `((` within tapping term
             register_mods(MOD_BIT(KC_LGUI));
             register_mods(MOD_BIT(KC_LSFT));
             register_code16(KC_S);
@@ -215,10 +234,57 @@ void sss_reset(qk_tap_dance_state_t *state, void *user_data) {
         case TD_SINGLE_TAP:
             unregister_code16(KC_S);
             break;
-        case TD_DOUBLE_SINGLE_TAP: // Allow nesting of 2 parens `((` within tapping term
+
+        case TD_DOUBLE_SINGLE_TAP:
+            unregister_code16(KC_S);
+            unregister_code16(KC_S);
+            break;
+
+        case TD_TRIPPLE_SINGLE_TAP: // Allow nesting of 2 parens `((` within tapping term
             unregister_mods(MOD_BIT(KC_LGUI));
             unregister_mods(MOD_BIT(KC_LSFT));
             unregister_code16(KC_S);
+            break;
+        default:
+            break;
+    }
+}
+
+void lll_finished(qk_tap_dance_state_t *state, void *user_data) {
+    td_state = cur_dance(state);
+    switch (td_state) {
+        case TD_SINGLE_TAP:
+            register_code16(KC_L);
+            break;
+
+        case TD_DOUBLE_SINGLE_TAP:
+            register_code16(KC_L);
+            register_code16(KC_L);
+            break;
+
+        case TD_TRIPPLE_SINGLE_TAP: // Allow nesting of 2 parens `((` within tapping term
+            register_mods(MOD_BIT(KC_LGUI));
+            register_code16(KC_L);
+            break;
+        default:
+            break;
+    }
+}
+
+void lll_reset(qk_tap_dance_state_t *state, void *user_data) {
+    switch (td_state) {
+        case TD_SINGLE_TAP:
+            unregister_code16(KC_L);
+            break;
+
+        case TD_DOUBLE_SINGLE_TAP:
+            unregister_code16(KC_L);
+            unregister_code16(KC_L);
+            break;
+
+        case TD_TRIPPLE_SINGLE_TAP: // Allow nesting of 2 parens `((` within tapping term
+            unregister_mods(MOD_BIT(KC_LGUI));
+            unregister_code16(KC_L);
             break;
         default:
             break;
@@ -235,6 +301,7 @@ qk_tap_dance_action_t tap_dance_actions[] = {
     [TD_V_PASTE] = ACTION_TAP_DANCE_FN_ADVANCED(NULL, vp_finished, vp_reset),
     [X_CTRL_CUT] = ACTION_TAP_DANCE_FN_ADVANCED(NULL, xcc_finished, xcc_reset),
     [C_ALT_COPY] = ACTION_TAP_DANCE_FN_ADVANCED(NULL, cac_finished, cac_reset),
-    [S_SCRNSHT] = ACTION_TAP_DANCE_FN_ADVANCED(NULL, sss_finished, sss_reset)
+    [S_SCRNSHT] = ACTION_TAP_DANCE_FN_ADVANCED(NULL, sss_finished, sss_reset),
+    [L_LOCK] = ACTION_TAP_DANCE_FN_ADVANCED(NULL, lll_finished, lll_reset)
 
 };
